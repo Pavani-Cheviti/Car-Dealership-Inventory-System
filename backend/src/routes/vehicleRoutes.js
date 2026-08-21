@@ -6,6 +6,7 @@ import {
   getAllVehicles,
   searchVehicles,
   updateVehicle,
+  deleteVehicle,
   purchaseVehicle,
   restockVehicle,
 } from '../services/vehicleService.js';
@@ -57,25 +58,39 @@ router.get('/search', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
-  try {
-    const vehicle = await updateVehicle(req.params.id, req.body);
-    res.status(200).json(vehicle);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+router.put(
+  '/:id',
+  [
+    body('make').optional().trim().notEmpty().withMessage('Make is required'),
+    body('model').optional().trim().notEmpty().withMessage('Model is required'),
+    body('category').optional().trim().notEmpty().withMessage('Category is required'),
+    body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a non-negative number'),
+    body('quantity').optional().isInt({ min: 0 }).withMessage('Quantity must be a non-negative integer'),
+  ],
+  requireAdmin,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
+    try {
+      const vehicle = await updateVehicle(req.params.id, req.body);
+      return res.status(200).json(vehicle);
+    } catch (error) {
+      const status = error.message === 'Vehicle not found' ? 404 : 400;
+      return res.status(status).json({ message: error.message });
+    }
   }
-});
+);
 
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    const vehicles = await getAllVehicles();
-    const target = vehicles.find((item) => String(item.id) === String(req.params.id));
-    if (!target) {
-      return res.status(404).json({ message: 'Vehicle not found' });
-    }
+    await deleteVehicle(req.params.id);
     return res.status(200).json({ message: 'Vehicle deleted successfully' });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    const status = error.message === 'Vehicle not found' ? 404 : 400;
+    return res.status(status).json({ message: error.message });
   }
 });
 

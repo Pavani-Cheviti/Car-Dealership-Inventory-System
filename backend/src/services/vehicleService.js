@@ -74,18 +74,86 @@ async function searchVehicles(filters = {}, repo = defaultVehicleRepo) {
   });
 }
 
+function parseVehicleId(id) {
+  const vehicleId = Number(id);
+
+  if (!Number.isInteger(vehicleId) || vehicleId <= 0) {
+    throw new Error('Invalid vehicle ID');
+  }
+
+  return vehicleId;
+}
+
+function validateVehicleUpdateInput(changes = {}) {
+  const nextVehicle = { ...changes };
+
+  if (changes.make !== undefined) {
+    const make = String(changes.make).trim();
+    if (!make) {
+      throw new Error('Make is required');
+    }
+    nextVehicle.make = make;
+  }
+
+  if (changes.model !== undefined) {
+    const model = String(changes.model).trim();
+    if (!model) {
+      throw new Error('Model is required');
+    }
+    nextVehicle.model = model;
+  }
+
+  if (changes.category !== undefined) {
+    const category = String(changes.category).trim();
+    if (!category) {
+      throw new Error('Category is required');
+    }
+    nextVehicle.category = category;
+  }
+
+  if (changes.price !== undefined) {
+    const price = Number(changes.price);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error('Price must be a non-negative number');
+    }
+    nextVehicle.price = price;
+  }
+
+  if (changes.quantity !== undefined) {
+    const quantity = Number(changes.quantity);
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      throw new Error('Quantity must be a non-negative integer');
+    }
+    nextVehicle.quantity = quantity;
+  }
+
+  return nextVehicle;
+}
+
 async function updateVehicle(id, changes, repo = defaultVehicleRepo) {
-  const existing = await repo.findById(id);
+  const vehicleId = parseVehicleId(id);
+  const existing = await repo.findById(vehicleId);
   if (!existing) {
     throw new Error('Vehicle not found');
   }
 
-  return repo.update(id, {
+  const mergedVehicle = {
     ...existing,
-    ...changes,
-    price: changes.price !== undefined ? Number(changes.price) : existing.price,
-    quantity: changes.quantity !== undefined ? Number(changes.quantity) : existing.quantity,
-  });
+    ...validateVehicleUpdateInput(changes),
+  };
+
+  return repo.update(vehicleId, mergedVehicle);
+}
+
+async function deleteVehicle(id, repo = defaultVehicleRepo) {
+  const vehicleId = parseVehicleId(id);
+  const existing = await repo.findById(vehicleId);
+
+  if (!existing) {
+    throw new Error('Vehicle not found');
+  }
+
+  return repo.delete(vehicleId);
 }
 
 async function purchaseVehicle(id, repo = defaultVehicleRepo) {
@@ -126,6 +194,7 @@ export {
   getAllVehicles,
   searchVehicles,
   updateVehicle,
+  deleteVehicle,
   purchaseVehicle,
   restockVehicle,
 };

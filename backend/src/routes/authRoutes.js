@@ -25,26 +25,24 @@ router.post('/register', registerValidationRules, async (req, res) => {
   }
 });
 
-router.post(
-  '/login',
-  [
-    body('email').isEmail().withMessage('Email is invalid'),
-    body('password').notEmpty().withMessage('Password is required'),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.array()[0].msg });
-    }
+const loginValidationRules = [
+  body('email').isEmail().withMessage('Email is invalid'),
+  body('password').notEmpty().withMessage('Password is required'),
+];
 
-    try {
-      const result = await loginUser(req.body);
-      return res.status(200).json(result);
-    } catch (error) {
-      const statusCode = error.statusCode || 401;
-      return res.status(statusCode).json({ message: error.message });
-    }
+router.post('/login', loginValidationRules, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
   }
-);
+
+  try {
+    const result = await loginUser(req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    const statusCode = error.statusCode || 401;
+    return res.status(statusCode).json({ message: error.message });
+  }
+});
 
 export default router;

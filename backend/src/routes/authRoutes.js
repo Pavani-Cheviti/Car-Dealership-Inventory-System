@@ -32,11 +32,17 @@ router.post(
     body('password').notEmpty().withMessage('Password is required'),
   ],
   async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
     try {
       const result = await loginUser(req.body);
-      res.status(200).json(result);
+      return res.status(200).json(result);
     } catch (error) {
-      res.status(401).json({ message: error.message });
+      const statusCode = error.statusCode || 401;
+      return res.status(statusCode).json({ message: error.message });
     }
   }
 );

@@ -1,7 +1,11 @@
 import { pool } from '../config/database.js';
 
 async function findByEmail(email) {
-  const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  const result = await pool.query(
+    `SELECT id, name, email, role, password_hash AS "passwordHash"
+     FROM users WHERE email = $1`,
+    [email]
+  );
   return result.rows[0] || null;
 }
 

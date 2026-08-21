@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -6,6 +7,7 @@ import app from '../server.js';
 import { pool } from '../config/database.js';
 
 const buildUniqueEmail = (prefix = 'login') => `${prefix}.${Date.now()}.${Math.random().toString(36).slice(2, 10)}@example.com`;
+const hashPassword = (password) => bcrypt.hashSync(password, 10);
 
 const cleanupUserByEmail = async (email) => {
   await pool.query('DELETE FROM users WHERE email = $1', [email]);
@@ -27,7 +29,7 @@ describe('POST /api/auth/login', () => {
     await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, $4)`,
-      ['Login User', email, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92Z6pO2gLW4fK4D9r7L7m', 'user']
+      ['Login User', email, hashPassword(password), 'user']
     );
 
     try {
@@ -54,7 +56,7 @@ describe('POST /api/auth/login', () => {
     await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, $4)`,
-      ['Bad Password User', email, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92Z6pO2gLW4fK4D9r7L7m', 'user']
+      ['Bad Password User', email, hashPassword(password), 'user']
     );
 
     try {
@@ -84,7 +86,7 @@ describe('POST /api/auth/login', () => {
     await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, $4)`,
-      ['JWT User', email, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92Z6pO2gLW4fK4D9r7L7m', 'user']
+      ['JWT User', email, hashPassword(password), 'user']
     );
 
     try {
@@ -109,7 +111,7 @@ describe('POST /api/auth/login', () => {
     await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, $4)`,
-      ['Claim User', email, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92Z6pO2gLW4fK4D9r7L7m', 'user']
+      ['Claim User', email, hashPassword(password), 'user']
     );
 
     try {
@@ -133,7 +135,7 @@ describe('POST /api/auth/login', () => {
     await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, $4)`,
-      ['Expiry User', email, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92Z6pO2gLW4fK4D9r7L7m', 'user']
+      ['Expiry User', email, hashPassword(password), 'user']
     );
 
     try {
@@ -149,7 +151,7 @@ describe('POST /api/auth/login', () => {
   it('verifies the password against the stored bcrypt hash and never returns the hash', async () => {
     const email = buildUniqueEmail('hash-check');
     const password = 'SecurePass123!';
-    const hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92Z6pO2gLW4fK4D9r7L7m';
+    const hash = hashPassword(password);
 
     await pool.query(
       `INSERT INTO users (name, email, password_hash, role)

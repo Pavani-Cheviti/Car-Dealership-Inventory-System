@@ -58,17 +58,24 @@ async function registerUser(data, repo = defaultUserRepo) {
 }
 
 async function loginUser(data, repo = defaultUserRepo) {
-  const user = await repo.findByEmail(data.email);
+  const email = String(data.email || '').trim().toLowerCase();
+  const password = String(data.password || '');
+
+  if (!email || !password) {
+    throw createRegistrationError('Invalid credentials', 401);
+  }
+
+  const user = await repo.findByEmail(email);
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw createRegistrationError('Invalid credentials', 401);
   }
 
-  const isValid = bcrypt.compareSync(data.password, user.passwordHash);
+  const isValid = bcrypt.compareSync(password, user.passwordHash);
   if (!isValid) {
-    throw new Error('Invalid credentials');
+    throw createRegistrationError('Invalid credentials', 401);
   }
 
-  const { passwordHash, ...safeUser } = user;
+  const safeUser = sanitizeUser(user);
   return {
     ...safeUser,
     token: generateToken(user),

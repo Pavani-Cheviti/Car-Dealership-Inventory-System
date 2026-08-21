@@ -36,8 +36,14 @@ function verifyToken(req, res, next) {
   }
 }
 
+function isAdminRole(role) {
+  return role === 'admin';
+}
+
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'admin') {
+  const role = req.user && req.user.role;
+
+  if (!isAdminRole(role)) {
     return res.status(403).json({ message: 'Admin access required' });
   }
 

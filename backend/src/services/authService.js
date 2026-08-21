@@ -20,27 +20,36 @@ function sanitizeUser(user) {
   return safeUser;
 }
 
-async function registerUser(data, repo = defaultUserRepo) {
-  const email = String(data.email || '').trim().toLowerCase();
-  const name = String(data.name || '').trim();
-  const password = String(data.password || '');
+function normalizeRegistrationInput(data = {}) {
+  return {
+    name: String(data.name || '').trim(),
+    email: String(data.email || '').trim().toLowerCase(),
+    password: String(data.password || ''),
+  };
+}
 
-  if (!name || !email || !password) {
+function createRegistrationError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+async function registerUser(data, repo = defaultUserRepo) {
+  const registrationInput = normalizeRegistrationInput(data);
+
+  if (!registrationInput.name || !registrationInput.email || !registrationInput.password) {
     throw new Error('All fields are required');
   }
 
-  const existing = await repo.findByEmail(email);
+  const existing = await repo.findByEmail(registrationInput.email);
   if (existing) {
-    const error = new Error('User already exists');
-    error.statusCode = 409;
-    throw error;
+    throw createRegistrationError('User already exists', 409);
   }
 
-  const passwordHash = bcrypt.hashSync(password, 10);
-
+  const passwordHash = bcrypt.hashSync(registrationInput.password, 10);
   const user = await repo.create({
-    name,
-    email,
+    name: registrationInput.name,
+    email: registrationInput.email,
     passwordHash,
     role: 'user',
   });

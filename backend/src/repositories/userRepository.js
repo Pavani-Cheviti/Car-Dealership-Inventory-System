@@ -6,11 +6,12 @@ async function findByEmail(email) {
 }
 
 async function create(user) {
+  const { name, email, passwordHash, role = 'user' } = user;
   const result = await pool.query(
     `INSERT INTO users (name, email, password_hash, role)
      VALUES ($1, $2, $3, $4)
      RETURNING id, name, email, role, password_hash AS "passwordHash"`,
-    [user.name, user.email, user.passwordHash, 'user']
+    [name, email, passwordHash, role]
   );
   return result.rows[0];
 }

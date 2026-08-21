@@ -1,11 +1,23 @@
 import { defaultVehicleRepo } from '../repositories/vehicleRepository.js';
 
+function normalizeText(value) {
+  return String(value ?? '').trim();
+}
+
+function validateNonNegativeNumber(value, fieldName) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    throw new Error(`${fieldName} must be a non-negative number`);
+  }
+
+  return numericValue;
+}
+
 function validateVehicleInput(data = {}) {
-  const make = String(data.make ?? '').trim();
-  const model = String(data.model ?? '').trim();
-  const category = String(data.category ?? '').trim();
-  const priceValue = Number(data.price);
-  const quantityValue = Number(data.quantity);
+  const make = normalizeText(data.make);
+  const model = normalizeText(data.model);
+  const category = normalizeText(data.category);
 
   if (!make) {
     throw new Error('Make is required');
@@ -19,11 +31,10 @@ function validateVehicleInput(data = {}) {
     throw new Error('Category is required');
   }
 
-  if (!Number.isFinite(priceValue) || priceValue < 0) {
-    throw new Error('Price must be a non-negative number');
-  }
+  const price = validateNonNegativeNumber(data.price, 'Price');
+  const quantity = Number(data.quantity);
 
-  if (!Number.isInteger(quantityValue) || quantityValue < 0) {
+  if (!Number.isInteger(quantity) || quantity < 0) {
     throw new Error('Quantity must be a non-negative integer');
   }
 
@@ -31,8 +42,8 @@ function validateVehicleInput(data = {}) {
     make,
     model,
     category,
-    price: priceValue,
-    quantity: quantityValue,
+    price,
+    quantity,
   };
 }
 

@@ -1,12 +1,27 @@
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import app from '../server.js';
 import { pool } from '../config/database.js';
 
 const makeToken = ({ user = { id: 1, email: 'user@example.com' }, role = 'user' }) =>
   jwt.sign({ ...user, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+const uniqueVehicleSeed = (prefix) => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    make: `${prefix}-${suffix}`,
+    model: `${prefix}-Model-${suffix}`,
+    category: 'Sedan',
+    price: 22000,
+    quantity: 5,
+  };
+};
+
+const clearVehicles = async () => {
+  await pool.query('DELETE FROM vehicles');
+};
 
 const insertVehicle = async ({ make = 'Toyota', model = 'Corolla', category = 'Sedan', price = 22000, quantity = 5 } = {}) => {
   const result = await pool.query(
@@ -20,8 +35,12 @@ const insertVehicle = async ({ make = 'Toyota', model = 'Corolla', category = 'S
 };
 
 describe('PUT /api/vehicles/:id', () => {
+  beforeEach(async () => {
+    await clearVehicles();
+  });
+
   afterEach(async () => {
-    await pool.query("DELETE FROM vehicles WHERE make IN ('Toyota', 'Honda', 'BMW', 'Ford', 'Mazda')");
+    await clearVehicles();
   });
 
   it('allows an admin to update an existing vehicle', async () => {
@@ -45,7 +64,8 @@ describe('PUT /api/vehicles/:id', () => {
   });
 
   it('rejects a normal USER from updating a vehicle', async () => {
-    const vehicle = await insertVehicle({ make: 'Honda', model: 'Civic', category: 'Sedan', price: 21000, quantity: 2 });
+    const seed = uniqueVehicleSeed('UpdateHonda');
+    const vehicle = await insertVehicle({ make: seed.make, model: seed.model, category: seed.category, price: 21000, quantity: 2 });
     const token = makeToken({ user: { id: 12, email: 'user@example.com' }, role: 'user' });
 
     const response = await request(app)
@@ -57,7 +77,8 @@ describe('PUT /api/vehicles/:id', () => {
   });
 
   it('rejects an unauthenticated request', async () => {
-    const vehicle = await insertVehicle({ make: 'Toyota', model: 'Corolla', category: 'Sedan', price: 22000, quantity: 5 });
+    const seed = uniqueVehicleSeed('UpdateToyota');
+    const vehicle = await insertVehicle({ make: seed.make, model: seed.model, category: seed.category, price: seed.price, quantity: seed.quantity });
 
     const response = await request(app)
       .put(`/api/vehicles/${vehicle.id}`)
@@ -80,7 +101,8 @@ describe('PUT /api/vehicles/:id', () => {
   });
 
   it('updates the model field', async () => {
-    const vehicle = await insertVehicle({ make: 'Toyota', model: 'Corolla', category: 'Sedan', price: 22000, quantity: 5 });
+    const seed = uniqueVehicleSeed('UpdateToyota');
+    const vehicle = await insertVehicle({ make: seed.make, model: seed.model, category: seed.category, price: seed.price, quantity: seed.quantity });
     const token = makeToken({ user: { id: 99, email: 'admin@example.com' }, role: 'admin' });
 
     const response = await request(app)
@@ -106,7 +128,8 @@ describe('PUT /api/vehicles/:id', () => {
   });
 
   it('updates the price field', async () => {
-    const vehicle = await insertVehicle({ make: 'Toyota', model: 'Corolla', category: 'Sedan', price: 22000, quantity: 5 });
+    const seed = uniqueVehicleSeed('UpdateToyota');
+    const vehicle = await insertVehicle({ make: seed.make, model: seed.model, category: seed.category, price: seed.price, quantity: seed.quantity });
     const token = makeToken({ user: { id: 99, email: 'admin@example.com' }, role: 'admin' });
 
     const response = await request(app)

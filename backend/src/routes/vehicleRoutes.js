@@ -1,5 +1,5 @@
 import express from 'express';
-import { body, validationResult } from 'express-validator';
+import { body, query, validationResult } from 'express-validator';
 import { verifyToken, requireAdmin } from '../middleware/authMiddleware.js';
 import {
   createVehicle,
@@ -49,14 +49,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/search', async (req, res) => {
-  try {
-    const vehicles = await searchVehicles(req.query);
-    res.status(200).json(vehicles);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+router.get(
+  '/search',
+  [
+    query('make').optional().isString().trim().withMessage('Make must be a string'),
+    query('model').optional().isString().trim().withMessage('Model must be a string'),
+    query('category').optional().isString().trim().withMessage('Category must be a string'),
+    query('minPrice').optional().isFloat({ min: 0 }).withMessage('minPrice must be a non-negative number'),
+    query('maxPrice').optional().isFloat({ min: 0 }).withMessage('maxPrice must be a non-negative number'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
+    try {
+      const vehicles = await searchVehicles(req.query);
+      return res.status(200).json(vehicles);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
 router.put(
   '/:id',
@@ -104,14 +119,26 @@ router.post('/:id/purchase', async (req, res) => {
   }
 });
 
-router.post('/:id/restock', requireAdmin, async (req, res) => {
-  try {
-    const vehicle = await restockVehicle(req.params.id, req.body.quantity || 1);
-    res.status(200).json(vehicle);
-  } catch (error) {
-    const status = error.message === 'Vehicle not found' ? 404 : 400;
-    res.status(status).json({ message: error.message });
+router.post(
+  '/:id/restock',
+  [
+    body('quantity').isInt({ min: 1 }).withMessage('Restock quantity must be a positive integer'),
+  ],
+  requireAdmin,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
+    try {
+      const vehicle = await restockVehicle(req.params.id, req.body.quantity);
+      return res.status(200).json(vehicle);
+    } catch (error) {
+      const status = error.message === 'Vehicle not found' ? 404 : 400;
+      return res.status(status).json({ message: error.message });
+    }
   }
-});
+);
 
 export default router;

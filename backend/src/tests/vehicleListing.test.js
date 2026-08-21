@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import app from '../server.js';
 import { pool } from '../config/database.js';
@@ -8,19 +8,60 @@ import { pool } from '../config/database.js';
 const makeToken = ({ user = { id: 1, email: 'user@example.com' }, role = 'user' }) =>
   jwt.sign({ ...user, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
+const uniqueVehicleSeed = (prefix) => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    make: `${prefix}-${suffix}`,
+    model: `${prefix}-Model-${suffix}`,
+    category: 'Sedan',
+    price: 24000,
+    quantity: 4,
+  };
+};
+
+const clearVehicles = async () => {
+  await pool.query('DELETE FROM vehicles');
+};
+
 const seedVehicles = async () => {
+  const vehicleA = uniqueVehicleSeed('ListToyota');
+  const vehicleB = uniqueVehicleSeed('ListHonda');
+  const vehicleC = uniqueVehicleSeed('ListTesla');
+
   await pool.query(
     `INSERT INTO vehicles (make, model, category, price, quantity) VALUES
-      ('Toyota', 'Camry', 'Sedan', 24000, 4),
-      ('Honda', 'Civic', 'Sedan', 22000, 2),
-      ('Tesla', 'Model 3', 'EV', 42000, 1)
-    ON CONFLICT DO NOTHING`
+      ($1, $2, $3, $4, $5),
+      ($6, $7, $8, $9, $10),
+      ($11, $12, $13, $14, $15)`,
+    [
+      vehicleA.make,
+      vehicleA.model,
+      vehicleA.category,
+      vehicleA.price,
+      vehicleA.quantity,
+      vehicleB.make,
+      vehicleB.model,
+      vehicleB.category,
+      vehicleB.price,
+      vehicleB.quantity,
+      vehicleC.make,
+      vehicleC.model,
+      vehicleC.category,
+      vehicleC.price,
+      vehicleC.quantity,
+    ]
   );
+
+  return [vehicleA, vehicleB, vehicleC];
 };
 
 describe('GET /api/vehicles', () => {
+  beforeEach(async () => {
+    await clearVehicles();
+  });
+
   afterEach(async () => {
-    await pool.query('DELETE FROM vehicles WHERE make IN ($1, $2, $3)', ['Toyota', 'Honda', 'Tesla']);
+    await clearVehicles();
   });
 
   it('allows an authenticated USER to list vehicles', async () => {
@@ -55,14 +96,14 @@ describe('GET /api/vehicles', () => {
 
   it('returns vehicles stored in PostgreSQL', async () => {
     const token = makeToken({ user: { id: 10, email: 'user@example.com' }, role: 'user' });
-    await seedVehicles();
+    const expected = await seedVehicles();
 
     const response = await request(app)
       .get('/api/vehicles')
       .set('Authorization', `Bearer ${token}`);
 
     const makes = response.body.map((vehicle) => vehicle.make);
-    expect(makes).toEqual(expect.arrayContaining(['Toyota', 'Honda', 'Tesla']));
+    expect(makes).toEqual(expect.arrayContaining(expected.map((vehicle) => vehicle.make)));
   });
 
   it('returns multiple vehicles correctly', async () => {
@@ -123,10 +164,11 @@ describe('GET /api/vehicles', () => {
 
   it('does not use a static JavaScript array as the source of truth', async () => {
     const token = makeToken({ user: { id: 10, email: 'user@example.com' }, role: 'user' });
-    await pool.query('DELETE FROM vehicles');
+    const uniqueVehicle = uniqueVehicleSeed('Mazda');
     await pool.query(
       `INSERT INTO vehicles (make, model, category, price, quantity) VALUES
-        ('Mazda', 'MX-5', 'Roadster', 31000, 7)`
+        ($1, $2, $3, $4, $5)`,
+      [uniqueVehicle.make, uniqueVehicle.model, 'Roadster', 31000, 7]
     );
 
     const response = await request(app)
@@ -137,8 +179,8 @@ describe('GET /api/vehicles', () => {
     expect(response.body).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          make: 'Mazda',
-          model: 'MX-5',
+          make: uniqueVehicle.make,
+          model: uniqueVehicle.model,
           category: 'Roadster',
           price: '31000.00',
           quantity: 7,

@@ -57,18 +57,44 @@ async function getAllVehicles(repo = defaultVehicleRepo) {
   return repo.findAll();
 }
 
+function parseSearchFilterNumber(value, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    throw new Error(`${fieldName} must be a non-negative number`);
+  }
+
+  return numericValue;
+}
+
 async function searchVehicles(filters = {}, repo = defaultVehicleRepo) {
+  const query = {
+    make: typeof filters.make === 'string' ? filters.make.trim() : filters.make,
+    model: typeof filters.model === 'string' ? filters.model.trim() : filters.model,
+    category: typeof filters.category === 'string' ? filters.category.trim() : filters.category,
+    minPrice: parseSearchFilterNumber(filters.minPrice, 'minPrice'),
+    maxPrice: parseSearchFilterNumber(filters.maxPrice, 'maxPrice'),
+  };
+
+  if (typeof repo.search === 'function') {
+    return repo.search(query);
+  }
+
   const vehicles = await repo.findAll();
 
   return vehicles.filter((vehicle) => {
-    const makeMatch = !filters.make || vehicle.make.toLowerCase().includes(filters.make.toLowerCase());
-    const modelMatch = !filters.model || vehicle.model.toLowerCase().includes(filters.model.toLowerCase());
-    const categoryMatch = !filters.category || vehicle.category.toLowerCase().includes(filters.category.toLowerCase());
-    const minPrice = filters.minPrice !== undefined ? Number(filters.minPrice) : null;
-    const maxPrice = filters.maxPrice !== undefined ? Number(filters.maxPrice) : null;
+    const makeMatch = !query.make || vehicle.make.toLowerCase().includes(query.make.toLowerCase());
+    const modelMatch = !query.model || vehicle.model.toLowerCase().includes(query.model.toLowerCase());
+    const categoryMatch = !query.category || vehicle.category.toLowerCase().includes(query.category.toLowerCase());
+    const minPrice = query.minPrice ?? null;
+    const maxPrice = query.maxPrice ?? null;
     const priceMatch =
-      (minPrice === null || vehicle.price >= minPrice) &&
-      (maxPrice === null || vehicle.price <= maxPrice);
+      (minPrice === null || Number(vehicle.price) >= minPrice) &&
+      (maxPrice === null || Number(vehicle.price) <= maxPrice);
 
     return makeMatch && modelMatch && categoryMatch && priceMatch;
   });
@@ -172,18 +198,26 @@ async function purchaseVehicle(id, repo = defaultVehicleRepo) {
   });
 }
 
+function parseRestockAmount(amount) {
+  const restockCount = Number(amount);
+
+  if (!Number.isInteger(restockCount) || restockCount <= 0) {
+    throw new Error('Restock quantity must be a positive integer');
+  }
+
+  return restockCount;
+}
+
 async function restockVehicle(id, amount, repo = defaultVehicleRepo) {
-  const vehicle = await repo.findById(id);
+  const vehicleId = parseVehicleId(id);
+  const vehicle = await repo.findById(vehicleId);
   if (!vehicle) {
     throw new Error('Vehicle not found');
   }
 
-  const restockCount = Number(amount || 0);
-  if (restockCount <= 0) {
-    throw new Error('Restock amount must be greater than zero');
-  }
+  const restockCount = parseRestockAmount(amount);
 
-  return repo.update(id, {
+  return repo.update(vehicleId, {
     ...vehicle,
     quantity: vehicle.quantity + restockCount,
   });

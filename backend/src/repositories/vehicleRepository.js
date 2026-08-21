@@ -42,6 +42,43 @@ async function deleteVehicleById(id) {
   return result.rows[0] || null;
 }
 
-const defaultVehicleRepo = { findAll, findById, create, update, delete: deleteVehicleById };
+async function search({ make, model, category, minPrice, maxPrice } = {}) {
+  const conditions = [];
+  const values = [];
 
-export { findAll, findById, create, update, deleteVehicleById, defaultVehicleRepo };
+  if (make !== undefined && make !== null && make !== '') {
+    conditions.push(`LOWER(make) LIKE $${values.length + 1}`);
+    values.push(`%${String(make).toLowerCase()}%`);
+  }
+
+  if (model !== undefined && model !== null && model !== '') {
+    conditions.push(`LOWER(model) LIKE $${values.length + 1}`);
+    values.push(`%${String(model).toLowerCase()}%`);
+  }
+
+  if (category !== undefined && category !== null && category !== '') {
+    conditions.push(`LOWER(category) LIKE $${values.length + 1}`);
+    values.push(`%${String(category).toLowerCase()}%`);
+  }
+
+  if (minPrice !== undefined && minPrice !== null && minPrice !== '') {
+    conditions.push(`price >= $${values.length + 1}`);
+    values.push(Number(minPrice));
+  }
+
+  if (maxPrice !== undefined && maxPrice !== null && maxPrice !== '') {
+    conditions.push(`price <= $${values.length + 1}`);
+    values.push(Number(maxPrice));
+  }
+
+  const sql = conditions.length > 0
+    ? `SELECT * FROM vehicles WHERE ${conditions.join(' AND ')} ORDER BY id ASC`
+    : 'SELECT * FROM vehicles ORDER BY id ASC';
+
+  const result = await pool.query(sql, values);
+  return result.rows;
+}
+
+const defaultVehicleRepo = { findAll, findById, create, update, delete: deleteVehicleById, search };
+
+export { findAll, findById, create, update, deleteVehicleById, search, defaultVehicleRepo };

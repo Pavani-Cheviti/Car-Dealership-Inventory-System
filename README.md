@@ -202,16 +202,41 @@ AI accelerated debugging and development, but the implementation and verificatio
 
 ## Screenshots
 
-The screenshot files are not currently committed in the repository. The final submission should include screenshots for:
+### 1. User Registration
+![User Registration](screenshots/01%20registation.png)
 
-- Login/Register
-- User inventory dashboard
-- Search/filter
-- Wishlist
-- Purchase and inventory quantity
-- Admin dashboard
-- Admin vehicle management
-- PostgreSQL/database verification
+### 2. User Login
+![User Login](screenshots/02%20User%20login.png)
+
+### 3. User Dashboard
+![User Dashboard](screenshots/03%20user%20dashboard.png)
+
+### 4. Search and Filter
+![Search Filter](screenshots/04%20search%20filter.png)
+
+### 5. Search Results
+![Search Results](screenshots/05%20search%20filter2.png)
+
+### 6. Search Results
+![Search Results](screenshots/06%20search3.png)
+
+### 7. Wishlist
+![Wishlist](screenshots/07%20whishlist.png)
+
+### 8. Out of Stock
+![Out of Stock](screenshots/08%20outofstock.png)
+
+### 9. Admin Interface
+![Admin Interface](screenshots/09%20Admin%20interface.png)
+
+### 10. Admin Vehicles
+![Admin Vehicles](screenshots/10%20admin%20interface1.png)
+
+### 11. Admin Functions
+![Admin Functions](screenshots/11%20admin%20function.png)
+
+### 12. Admin Update Stock
+![Admin Update Stock](screenshots/12%20admin%20update%20stock.png)
 
 ## Security And Git Hygiene
 

@@ -1,98 +1,222 @@
 # Car Dealership Inventory System
 
-A full-stack car dealership inventory project built with a Node.js/Express backend and a React/Vite frontend. The project follows a test-first workflow and includes JWT-based auth, inventory management, and a showroom dashboard UI.
+A full-stack dealership inventory application with a PostgreSQL-backed Express API and a responsive React marketplace interface. Northstar Auto supports authenticated browsing, inventory operations, purchasing, restocking, and role-based administration.
 
-## Overview
+## Features
 
-This kata simulates a modern dealership workflow:
+### Backend
 
-- User registration and login with password hashing and JWT tokens
-- Vehicle listing with search and category filtering
-- Inventory purchase and restock flows
-- Admin-only vehicle management actions
-- REST API built for a PostgreSQL-backed persistence layer
-- React SPA for the customer and admin dashboard
+- Node.js and Express REST API
+- PostgreSQL persistence using repository/service/route architecture
+- Registration and login with bcryptjs password hashing
+- JWT token-based authentication for protected vehicle APIs
+- User and admin roles
+- Admin-only vehicle creation, update, deletion, and restocking
+- Quantity tracking, purchase decrementing, and oversell prevention
+- 25 demo vehicles seeded in PostgreSQL with realistic INR pricing
+
+### Frontend
+
+- React, Vite, and Tailwind CSS
+- Responsive single-page application
+- Registration, login, logout, and persisted JWT session state
+- Vehicle dashboard with realistic vehicle imagery
+- Category, minimum-price, and maximum-price filtering
+- INR display with Indian number formatting
+- Frontend-only wishlist stored in localStorage
+- Location selector with Hyderabad as the default city
+- Featured vehicles, dealership-style hero section, and Offers navigation
+- Admin controls shown only to users with the `admin` role
 
 ## Tech Stack
 
-- Backend: Node.js, Express, PostgreSQL, JWT, bcryptjs, Vitest, Supertest
+- Backend: Node.js, Express, PostgreSQL, JWT, bcryptjs
 - Frontend: React, Vite, Tailwind CSS
-- Testing: backend suite is written first and validated with Vitest
+- Testing: Vitest and Supertest
 
 ## Project Structure
 
-- backend/: Express API, repository/service layers, tests, SQL-ready configuration
-- frontend/: React SPA dashboard and styling
-- README.md: project summary and setup guidance
-- PROMPTS.md: prompt log and AI usage notes
+```text
+backend/       Express API, PostgreSQL configuration, services, repositories, and tests
+frontend/      React/Vite SPA and responsive UI
+PROMPTS.md     Raw AI conversation and prompt material required by the assignment
+README.md      Project documentation
+```
 
-## Local Setup
+## API
 
-1. Install frontend dependencies:
-   cd frontend
-   npm install
+Authentication endpoints:
 
-2. Install backend dependencies:
-   cd backend
-   npm install
+```text
+POST /api/auth/register
+POST /api/auth/login
+```
 
-3. Configure PostgreSQL:
-   Create a backend/.env file or copy backend/.env.example if present.
-   Set DATABASE_URL to your PostgreSQL connection string, for example:
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/car_dealership
-   JWT_SECRET=replace-with-a-long-random-secret
+Protected vehicle endpoints require `Authorization: Bearer <token>`:
 
-4. Run the database migration:
-   cd backend
-   npm run db:migrate
+```text
+GET    /api/vehicles
+GET    /api/vehicles/search
+POST   /api/vehicles
+PUT    /api/vehicles/:id
+DELETE /api/vehicles/:id
+POST   /api/vehicles/:id/purchase
+POST   /api/vehicles/:id/restock
+```
 
-5. Verify the database connection:
-   - Confirm the PostgreSQL server is running
-   - Confirm the database exists
-   - Confirm the `users` and `vehicles` tables were created
+`GET /api/vehicles/search` supports these query filters:
 
-6. Start the backend:
-   cd backend
-   npm run dev
+- `make`
+- `model`
+- `category`
+- `minPrice`
+- `maxPrice`
 
-7. Start the frontend:
-   cd frontend
-   npm run dev
+Vehicle listing and search are backed by PostgreSQL. Purchase and restock operations update persisted inventory quantities, and purchasing cannot oversell a vehicle.
 
-8. Open the frontend app at:
-   http://localhost:5173/
+## Windows PowerShell Setup
 
-## API Highlights
+### 1. Clone the repository
 
-- POST /api/auth/register
-- POST /api/auth/login
-- GET /api/vehicles
-- POST /api/vehicles
-- PUT /api/vehicles/:id
-- DELETE /api/vehicles/:id
-- POST /api/vehicles/:id/purchase
-- POST /api/vehicles/:id/restock
+```powershell
+git clone <repository-url>
+cd car-dealership-kata
+```
 
-## Verification
+### 2. Configure PostgreSQL
 
-The project was validated with fresh commands:
+Install and start PostgreSQL, then create a database named `car_dealership` using your PostgreSQL administration tool or `psql`.
 
-- Backend tests: `cd backend && npm test -- --run`
-  Result: 2 test files passed, 10 tests passed
+### 3. Create the backend environment file
 
-- Frontend build: `cd frontend && npm run build`
-  Result: Vite production build succeeded
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
+
+Edit `backend\.env` with local values:
+
+```env
+DATABASE_URL=postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5432/car_dealership
+JWT_SECRET=replace-with-a-long-random-secret
+PORT=5000
+```
+
+### 4. Install backend dependencies
+
+```powershell
+Set-Location backend
+npm install
+```
+
+### 5. Run the migration
+
+```powershell
+npm run db:migrate
+```
+
+### 6. Start the backend
+
+```powershell
+npm start
+```
+
+The backend runs at `http://localhost:5000/`.
+
+### 7. Install frontend dependencies
+
+Open a second PowerShell terminal from the repository root:
+
+```powershell
+Set-Location frontend
+npm install
+```
+
+### 8. Start the frontend
+
+```powershell
+npm run dev
+```
+
+Open `http://localhost:5173/` in a browser.
+
+The migration initializes the database schema. The 25 demo vehicles must be present in the configured PostgreSQL database for the seeded inventory view.
+
+## Testing And Verification
+
+Backend verification was run against a real PostgreSQL database:
+
+```text
+Test Files: 14 passed (14)
+Tests: 126 passed (126)
+Failures: 0
+Exit code: 0
+```
+
+Run the backend tests with:
+
+```powershell
+Set-Location backend
+npm test -- --run
+```
+
+Frontend verification:
+
+- `npm run lint`: passed with two non-blocking existing React hook warnings
+- `npm run build`: passed successfully
+- Browser verification confirmed that authenticated `GET /api/vehicles` returns the PostgreSQL inventory when the database is seeded
+
+## Test-Driven Development
+
+Backend development followed a red-green-refactor workflow where appropriate. The test suite covers:
+
+- Registration
+- Login
+- JWT middleware
+- Admin authorization
+- Vehicle creation
+- Vehicle listing
+- Vehicle update
+- Vehicle deletion
+- Vehicle search
+- Vehicle purchase
+- Vehicle restock
+- Service-layer behavior
 
 ## My AI Usage
 
-This project was developed with GitHub Copilot support for:
+GitHub Copilot and ChatGPT were used during development.
 
-- scaffolding the backend and frontend structure
-- creating a TDD-first test suite for auth and inventory logic
-- resolving ESM and Vitest configuration issues
-- generating the dashboard layout and dealership-themed UI
-- documenting the final project setup and implementation notes
+AI assistance was used for:
 
-## Notes
+- Brainstorming and planning implementation
+- Generating and refining tests
+- Debugging backend and frontend issues
+- Diagnosing PostgreSQL and database behavior
+- Frontend UI development and refinement
+- Reviewing API integration
+- README and documentation assistance
 
-The API is configured to connect to PostgreSQL through DATABASE_URL and is ready for a real database-backed deployment. In this local environment, Docker and a live PostgreSQL instance were not available, so the backend was verified via the service-layer test suite and the frontend build rather than a full live DB integration run.
+AI accelerated debugging and development, but the implementation and verification were checked manually. Particular attention was given to API behavior, PostgreSQL persistence, authentication, inventory operations, frontend flows, and test results.
+
+`PROMPTS.md` contains the raw AI conversation and prompt material required by the assignment and is included at the repository root.
+
+## Screenshots
+
+The screenshot files are not currently committed in the repository. The final submission should include screenshots for:
+
+- Login/Register
+- User inventory dashboard
+- Search/filter
+- Wishlist
+- Purchase and inventory quantity
+- Admin dashboard
+- Admin vehicle management
+- PostgreSQL/database verification
+
+## Security And Git Hygiene
+
+- Secrets are stored locally in `backend/.env`.
+- `backend/.env` must never be committed.
+- `.env` is excluded through `.gitignore`.
+- Replace the example JWT secret with a long, random local or deployment secret.
+- Never include real passwords, tokens, or connection secrets in source code or documentation.
